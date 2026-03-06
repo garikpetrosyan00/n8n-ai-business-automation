@@ -1,0 +1,257 @@
+{
+  "name": "Lead Intake Workflow",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "Webhook_Lead_Intake",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-intake",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "lead-intake-webhook"
+    },
+    {
+      "id": "Validate_Required_Fields",
+      "name": "Validate Required Fields",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "functionCode": "const input = $json.body ?? $json;\nconst required = ['name', 'email', 'company', 'message'];\nconst missingFields = required.filter((field) => {\n  const value = input[field];\n  return value === undefined || value === null || String(value).trim() === '';\n});\n\nreturn [\n  {\n    json: {\n      ...input,\n      _validation: {\n        isValid: missingFields.length === 0,\n        missingFields\n      }\n    }\n  }\n];"
+      }
+    },
+    {
+      "id": "Check_Validation_Result",
+      "name": "Check Validation Result",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json._validation.isValid}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Normalize_Lead_Data",
+      "name": "Normalize Lead Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        960,
+        220
+      ],
+      "parameters": {
+        "functionCode": "const trimText = (value) => typeof value === 'string' ? value.trim() : value;\n\nconst normalized = {\n  name: trimText($json.name),\n  email: trimText($json.email)?.toLowerCase(),\n  company: trimText($json.company),\n  message: trimText($json.message),\n  source: trimText($json.source || 'webhook'),\n  received_at: new Date().toISOString()\n};\n\nreturn [{ json: normalized }];"
+      }
+    },
+    {
+      "id": "AI_Qualification_Simulation",
+      "name": "AI Qualification Simulation",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        220
+      ],
+      "parameters": {
+        "functionCode": "const text = `${$json.message || ''}`.toLowerCase();\nlet leadScore = 45;\n\nif (text.includes('automation')) leadScore += 20;\nif (text.includes('crm')) leadScore += 15;\nif (text.includes('urgent') || text.includes('asap')) leadScore += 10;\nif (text.length > 120) leadScore += 5;\n\nleadScore = Math.max(0, Math.min(100, leadScore));\n\nlet leadCategory = 'cold';\nlet priority = 'low';\n\nif (leadScore >= 80) {\n  leadCategory = 'high-fit';\n  priority = 'high';\n} else if (leadScore >= 60) {\n  leadCategory = 'qualified';\n  priority = 'medium';\n}\n\nconst summary = `${$json.name} from ${$json.company} submitted a ${leadCategory} lead with score ${leadScore}.`;\n\nreturn [{\n  json: {\n    ...$json,\n    lead_score: leadScore,\n    lead_category: leadCategory,\n    priority,\n    summary\n  }\n}];"
+      }
+    },
+    {
+      "id": "Prepare_Storage_Record",
+      "name": "Prepare Storage Record",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        220
+      ],
+      "parameters": {
+        "functionCode": "const leadId = `LD-${Date.now()}`;\n\nreturn [{\n  json: {\n    lead_id: leadId,\n    status: 'qualified',\n    lead: {\n      name: $json.name,\n      email: $json.email,\n      company: $json.company,\n      message: $json.message,\n      source: $json.source,\n      received_at: $json.received_at\n    },\n    ai_output: {\n      lead_score: $json.lead_score,\n      lead_category: $json.lead_category,\n      priority: $json.priority,\n      summary: $json.summary\n    },\n    storage_payload: {\n      table: 'leads',\n      operation: 'insert',\n      record_preview: {\n        company: $json.company,\n        email: $json.email,\n        score: $json.lead_score,\n        priority: $json.priority\n      }\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "Build_Notification_Message",
+      "name": "Build Notification Message",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        220
+      ],
+      "parameters": {
+        "functionCode": "const message = `New qualified lead: ${$json.lead.name} from ${$json.lead.company}, priority: ${$json.ai_output.priority}`;\n\nreturn [{\n  json: {\n    ...$json,\n    internal_notification: {\n      channel: 'internal-alerts',\n      message\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "Build_Validation_Error",
+      "name": "Build Validation Error",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        960,
+        420
+      ],
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    status: 'error',\n    error_type: 'validation_error',\n    message: 'Required lead fields are missing.',\n    missing_fields: $json._validation?.missingFields || []\n  }\n}];"
+      }
+    },
+    {
+      "id": "Respond_Success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        220
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "Respond_Validation_Error",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        420
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Required Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Required Fields": {
+      "main": [
+        [
+          {
+            "node": "Check Validation Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Validation Result": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lead Data": {
+      "main": [
+        [
+          {
+            "node": "AI Qualification Simulation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Qualification Simulation": {
+      "main": [
+        [
+          {
+            "node": "Prepare Storage Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Storage Record": {
+      "main": [
+        [
+          {
+            "node": "Build Notification Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Notification Message": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Validation Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "versionId": "1"
+}

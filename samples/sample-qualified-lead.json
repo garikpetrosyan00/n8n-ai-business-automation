@@ -1,0 +1,33 @@
+{
+  "qualified_lead": {
+    "contact_name": "Elena Martinez",
+    "contact_email": "elena.martinez@northstarlogistics.example",
+    "company": "NorthStar Logistics",
+    "role": "Operations Manager",
+    "inquiry_summary": "Need automation for lead intake, CRM synchronization, and faster internal notifications.",
+    "budget_estimate_usd": 18000,
+    "lead_score": 85,
+    "lead_category": "high-fit",
+    "priority": "high",
+    "confidence": 0.91,
+    "summary": "Elena Martinez from NorthStar Logistics classified as high-fit (high) with score 85.",
+    "recommended_action": "Schedule fast response within 2 hours",
+    "crm_stage": "Discovery",
+    "routing_bucket": "high-priority",
+    "crm_record": {
+      "contact_name": "Elena Martinez",
+      "contact_email": "elena.martinez@northstarlogistics.example",
+      "company": "NorthStar Logistics",
+      "score": 85,
+      "priority": "high",
+      "stage": "Discovery",
+      "owner_hint": "senior-ae-queue",
+      "notes": "Elena Martinez from NorthStar Logistics classified as high-fit (high) with score 85."
+    }
+  },
+  "internal_follow_up": {
+    "next_step": "Schedule fast response within 2 hours",
+    "owner_hint": "senior-ae-queue"
+  },
+  "processed_at": "2026-03-06T10:15:00Z"
+}

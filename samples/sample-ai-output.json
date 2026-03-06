@@ -1,0 +1,24 @@
+{
+  "lead_id": "LD-2026-0001",
+  "qualified": true,
+  "qualification_score": 86,
+  "priority": "high",
+  "segment": "mid-market",
+  "recommended_next_action": "Schedule discovery call within 24 hours",
+  "reasoning_summary": "Lead has clear automation requirements, budget alignment, and near-term implementation timeline.",
+  "tags": [
+    "crm-sync",
+    "lead-qualification",
+    "operations-automation"
+  ],
+  "crm_payload": {
+    "status": "Qualified",
+    "owner_team": "Sales Ops",
+    "pipeline_stage": "Discovery"
+  },
+  "notification": {
+    "channel": "slack",
+    "message": "High-priority qualified lead: NorthStar Logistics (Score: 86)."
+  },
+  "processed_at": "2026-03-06T09:31:20Z"
+}

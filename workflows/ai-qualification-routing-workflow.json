@@ -1,0 +1,278 @@
+{
+  "name": "AI Qualification & Routing Workflow",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "Webhook_AI_Qualification",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-qualification",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "ai-qualification-webhook"
+    },
+    {
+      "id": "Prepare_AI_Input",
+      "name": "Prepare AI Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "functionCode": "const input = $json.body ?? $json;\n\nconst compactPayload = {\n  contact_name: input.name || input.contact_name || '',\n  contact_email: (input.email || input.contact_email || '').toLowerCase().trim(),\n  company: (input.company || '').trim(),\n  role: (input.role || input.job_title || 'Unknown').trim(),\n  inquiry_summary: (input.message || input.inquiry_summary || '').trim(),\n  budget_estimate_usd: input.estimated_budget_usd ?? input.budget_estimate_usd ?? null,\n  source: (input.source || 'webhook').trim()\n};\n\nreturn [{\n  json: {\n    ...compactPayload,\n    ai_prompt_payload: {\n      context: 'B2B automation lead qualification',\n      criteria: ['business fit', 'urgency', 'budget readiness', 'implementation clarity'],\n      lead: compactPayload\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "AI_Qualification_Simulation",
+      "name": "AI Qualification Simulation",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "functionCode": "const summaryText = `${$json.inquiry_summary || ''}`.toLowerCase();\nconst budget = Number($json.budget_estimate_usd || 0);\n\nlet leadScore = 40;\nif (summaryText.includes('automation')) leadScore += 15;\nif (summaryText.includes('crm') || summaryText.includes('integration')) leadScore += 15;\nif (summaryText.includes('urgent') || summaryText.includes('asap')) leadScore += 10;\nif (budget >= 10000) leadScore += 15;\nif (budget >= 25000) leadScore += 5;\n\nleadScore = Math.max(0, Math.min(100, leadScore));\n\nlet leadCategory = 'early-stage';\nlet priority = 'low';\nlet crmStage = 'Nurture';\nlet confidence = 0.67;\nlet recommendedAction = 'Request clarification before qualification';\n\nif (leadScore >= 80) {\n  leadCategory = 'high-fit';\n  priority = 'high';\n  crmStage = 'Discovery';\n  confidence = 0.91;\n  recommendedAction = 'Schedule fast response within 2 hours';\n} else if (leadScore >= 60) {\n  leadCategory = 'qualified';\n  priority = 'medium';\n  crmStage = 'Qualified';\n  confidence = 0.82;\n  recommendedAction = 'Add to nurture pipeline';\n}\n\nconst summary = `${$json.contact_name || 'Lead'} from ${$json.company || 'Unknown company'} classified as ${leadCategory} (${priority}) with score ${leadScore}.`;\n\nreturn [{\n  json: {\n    ...$json,\n    lead_score: leadScore,\n    lead_category: leadCategory,\n    priority,\n    confidence,\n    summary,\n    recommended_action: recommendedAction,\n    crm_stage: crmStage\n  }\n}];"
+      }
+    },
+    {
+      "id": "Route_High_Priority",
+      "name": "Route High Priority",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.priority === 'high'}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Route_Medium_Priority",
+      "name": "Route Medium Priority",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        440
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.priority === 'medium'}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Prepare_CRM_High",
+      "name": "Prepare CRM Record (High)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        180
+      ],
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    ...$json,\n    routing_bucket: 'high-priority',\n    crm_record: {\n      contact_name: $json.contact_name,\n      contact_email: $json.contact_email,\n      company: $json.company,\n      score: $json.lead_score,\n      priority: $json.priority,\n      stage: $json.crm_stage,\n      owner_hint: 'senior-ae-queue',\n      notes: $json.summary\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "Prepare_CRM_Medium",
+      "name": "Prepare CRM Record (Medium)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        380
+      ],
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    ...$json,\n    routing_bucket: 'medium-priority',\n    crm_record: {\n      contact_name: $json.contact_name,\n      contact_email: $json.contact_email,\n      company: $json.company,\n      score: $json.lead_score,\n      priority: $json.priority,\n      stage: $json.crm_stage,\n      owner_hint: 'sales-ops-queue',\n      notes: $json.summary\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "Prepare_CRM_Low",
+      "name": "Prepare CRM Record (Low)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        540
+      ],
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    ...$json,\n    routing_bucket: 'low-priority',\n    crm_record: {\n      contact_name: $json.contact_name,\n      contact_email: $json.contact_email,\n      company: $json.company,\n      score: $json.lead_score,\n      priority: $json.priority,\n      stage: $json.crm_stage,\n      owner_hint: 'nurture-queue',\n      notes: $json.summary\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "Prepare_Follow_Up_Recommendation",
+      "name": "Prepare Follow-up Recommendation",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        380
+      ],
+      "parameters": {
+        "functionCode": "let nextStep = 'Request clarification before qualification';\nif ($json.priority === 'high') nextStep = 'Schedule fast response within 2 hours';\nif ($json.priority === 'medium') nextStep = 'Add to nurture pipeline';\n\nreturn [{\n  json: {\n    qualified_lead: {\n      contact_name: $json.contact_name,\n      contact_email: $json.contact_email,\n      company: $json.company,\n      role: $json.role,\n      inquiry_summary: $json.inquiry_summary,\n      budget_estimate_usd: $json.budget_estimate_usd,\n      lead_score: $json.lead_score,\n      lead_category: $json.lead_category,\n      priority: $json.priority,\n      confidence: $json.confidence,\n      summary: $json.summary,\n      recommended_action: $json.recommended_action,\n      crm_stage: $json.crm_stage,\n      routing_bucket: $json.routing_bucket,\n      crm_record: $json.crm_record\n    },\n    internal_follow_up: {\n      next_step: nextStep,\n      owner_hint: $json.crm_record.owner_hint\n    },\n    processed_at: new Date().toISOString()\n  }\n}];"
+      }
+    },
+    {
+      "id": "Respond_Final_JSON",
+      "name": "Respond Final JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        380
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Input": {
+      "main": [
+        [
+          {
+            "node": "AI Qualification Simulation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Qualification Simulation": {
+      "main": [
+        [
+          {
+            "node": "Route High Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route High Priority": {
+      "main": [
+        [
+          {
+            "node": "Prepare CRM Record (High)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route Medium Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Medium Priority": {
+      "main": [
+        [
+          {
+            "node": "Prepare CRM Record (Medium)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare CRM Record (Low)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare CRM Record (High)": {
+      "main": [
+        [
+          {
+            "node": "Prepare Follow-up Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare CRM Record (Medium)": {
+      "main": [
+        [
+          {
+            "node": "Prepare Follow-up Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare CRM Record (Low)": {
+      "main": [
+        [
+          {
+            "node": "Prepare Follow-up Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Follow-up Recommendation": {
+      "main": [
+        [
+          {
+            "node": "Respond Final JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "versionId": "1"
+}
