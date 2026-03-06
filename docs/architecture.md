@@ -24,15 +24,20 @@ This project follows a modular n8n architecture for business automation. It rece
    - Persists workflow events and key payload snapshots.
    - Supports traceability and troubleshooting.
 
+6. Helper Service Module
+   - Provides reusable API endpoints for normalization and scoring support.
+   - Keeps logic centralized when workflows need shared utility behavior.
+
 ## Data Flow
 
 1. A lead enters through an intake webhook.
 2. n8n validates and standardizes the payload.
-3. The normalized lead is passed to the AI qualification step.
-4. Structured AI output is used to determine routing and priority.
-5. Qualified data is synchronized to CRM through API endpoints.
-6. Internal notifications are sent to the relevant team.
-7. Key events and outputs are stored for audit and reporting.
+3. Optional helper API calls (`/normalize-lead`, `/score-lead`) can be used when shared utility logic is needed.
+4. The normalized lead is passed to the AI qualification step.
+5. Structured AI output is used to determine routing and priority.
+6. Qualified data is synchronized to CRM through API endpoints.
+7. Internal notifications are sent to the relevant team.
+8. Key events and outputs are stored for audit and reporting.
 
 ## Lead Intake Workflow Data Flow
 
@@ -60,3 +65,38 @@ This repository also includes `workflows/ai-qualification-routing-workflow.json`
 7. `Respond Final JSON` returns a structured response suitable for downstream storage, sync, or notification workflows.
 
 In the overall architecture, normalized lead data from intake can be passed into this workflow to determine business priority, CRM readiness, and team follow-up actions.
+
+## CRM Sync & Notifications Workflow
+
+This repository also includes `workflows/crm-sync-notifications-workflow.json` to represent downstream operations after a lead is qualified.
+
+1. `Webhook Trigger` receives qualified lead payloads through `POST /crm-sync`.
+2. `Validate CRM Payload` checks required fields: `contact_name`, `contact_email`, `company`, `priority`, and `stage`.
+3. `Route Validation` sends valid payloads through success processing and invalid payloads to an error response path.
+4. `Prepare CRM Sync Record` converts lead data into a normalized CRM sync object with `external_id`, business fields, and `synced_at`.
+5. `Prepare Audit Log` builds a lightweight event record for traceability (`event_type`, `timestamp`, `company`, `contact_email`, `sync_status`).
+6. `Prepare Internal Notification` formats an operational alert message for internal channels.
+7. `Build Success Response` returns `crm_sync_record`, `audit_log`, `internal_notification`, and `status: success`.
+8. `Build Error Response` returns `status: error`, `missing_fields`, and a concise validation message.
+
+In the full architecture, this workflow acts as the execution layer that translates qualification outcomes into CRM-ready records, audit entries, and team notifications.
+
+## Helper API in Architecture
+
+The helper API (`services/helper-api`) sits alongside n8n as a lightweight utility service.
+
+1. n8n can call helper endpoints when repeated transformation logic should be centralized in code.
+2. `/normalize-lead` can be used before routing to enforce a consistent lead contract.
+3. `/score-lead` can be used when deterministic scoring should be shared across workflows.
+4. `/health` supports quick local checks during development and demos.
+
+Helper services are useful in automation systems because they keep workflow graphs readable while allowing reusable business logic to be maintained in one place.
+
+## Demo and Samples Reference
+
+- Walkthrough guide: `docs/demo-walkthrough.md`
+- Project summary: `docs/project-summary.md`
+- Lead sample: `samples/sample-lead.json`
+- Qualification sample: `samples/sample-qualified-lead.json`
+- CRM sync sample: `samples/sample-crm-sync-output.json`
+- Notification sample: `samples/sample-notification-message.json`

@@ -1,82 +1,140 @@
 # AI Business Automation Hub with n8n
 
-AI-powered business automation project built with n8n to orchestrate lead intake, AI qualification, CRM synchronization, and internal notifications through modular workflows.
+AI-powered business automation portfolio project built with n8n and a lightweight helper API to demonstrate lead intake, qualification, routing, CRM preparation, and internal notifications.
 
 ## Overview
 
-This repository is a portfolio-grade foundation for designing and documenting practical business automation systems. It focuses on clean workflow organization, realistic payload examples, and a scalable architecture that can be extended with implementation-specific workflows.
+This repository presents a modular automation architecture for business lead operations. It includes three n8n workflows, sample payloads, and a minimal FastAPI helper service to support reusable normalization and scoring logic.
 
-## Core Features
+## Why This Project Matters
 
-- Lead intake via webhooks and API-driven integrations
-- AI-based lead qualification with structured decision outputs
-- CRM synchronization using REST APIs
-- Internal notification routing for faster response times
-- Modular workflow design for maintainability and reuse
-
-## Proposed Architecture
-
-- Intake workflows receive and normalize inbound lead data
-- AI qualification workflows score, classify, and recommend actions
-- CRM sync workflows create or update records in target systems
-- Notification workflows deliver internal alerts by channel
-- Storage/audit layer preserves key event and payload history
-
-Detailed notes: see `docs/architecture.md`.
+Business teams often lose time on manual lead triage, inconsistent CRM updates, and delayed internal follow-up. This project shows a practical automation pattern that converts inbound lead data into structured, prioritized, CRM-ready outcomes with clear internal handoff signals.
 
 ## Implemented Workflows
 
 Lead Intake Workflow (`workflows/lead-intake-workflow.json`)
-- Webhook trigger accepts `POST /lead-intake` lead submissions
-- Validation checks required fields (`name`, `email`, `company`, `message`)
-- Normalization standardizes whitespace, email casing, and timestamps
-- AI qualification simulation assigns score, category, priority, and summary
-- Storage preparation builds a structured record for downstream persistence
-- Notification formatting creates an internal alert message for the team
+- Webhook trigger accepts `POST /lead-intake` submissions
+- Validates required fields and routes invalid payloads to an error response
+- Normalizes core lead data and simulates AI-style qualification
+- Prepares storage-ready output and internal notification content
 
 AI Qualification & Routing Workflow (`workflows/ai-qualification-routing-workflow.json`)
 - Webhook trigger accepts `POST /ai-qualification` structured lead payloads
-- AI input preparation builds a compact analysis payload for scoring context
-- Qualification simulation generates score, category, priority, confidence, and action hints
-- Conditional routing separates high, medium, and low-priority processing paths
-- CRM preparation outputs normalized `crm_record` fields with ownership hints
-- Follow-up preparation outputs concise internal next-step recommendations
+- Prepares compact AI input context and simulates qualification output
+- Routes leads by priority (high, medium, low)
+- Builds CRM-ready fields and follow-up recommendations
 
-Together, the two workflows represent a clear progression from lead intake to qualification and routing.
+CRM Sync & Notifications Workflow (`workflows/crm-sync-notifications-workflow.json`)
+- Webhook trigger accepts `POST /crm-sync` qualified lead payloads
+- Validates CRM-required fields with a clear error branch
+- Builds normalized CRM sync record and lightweight audit log
+- Formats internal alert messages and returns structured success output
+
+These workflows are simulation-based portfolio examples intended to demonstrate architecture and logic patterns, not production vendor integrations.
+
+## Example Business Use Cases
+
+- B2B service firms automating lead triage from website forms
+- Agencies prioritizing inbound opportunities before sales handoff
+- Ops teams standardizing CRM preparation across different lead sources
+- Internal teams requiring consistent alerting for high-priority leads
+
+## Helper API
+
+The helper API (`services/helper-api/`) is a lightweight FastAPI service designed for reusable workflow support logic.
+
+Endpoints:
+- `GET /health` returns service health (`{"status": "ok"}`)
+- `POST /normalize-lead` returns cleaned and normalized lead fields
+- `POST /score-lead` returns simulated qualification output (`lead_score`, `priority`, `lead_category`, `summary`)
+
+## Getting Started
+
+1. Clone the repository and move into the project folder.
+2. Copy environment placeholders:
+
+```bash
+cp .env.example .env
+```
+
+3. Start local stack with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+4. Open local services:
+- n8n: `http://localhost:5678`
+- Helper API: `http://localhost:8000`
+- Demo walkthrough: `docs/demo-walkthrough.md`
+
+## Local Development
+
+Docker Compose quick start:
+
+```bash
+docker compose up --build
+```
+
+Run helper API directly:
+
+```bash
+cd services/helper-api
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Additional references:
+- Demo walkthrough: `docs/demo-walkthrough.md`
+- Project summary: `docs/project-summary.md`
+- Architecture notes: `docs/architecture.md`
 
 ## Folder Structure
 
 ```text
 .
+├── .env.example
+├── docker-compose.yml
 ├── docs/
-│   └── architecture.md
+│   ├── architecture.md
+│   ├── demo-walkthrough.md
+│   └── project-summary.md
 ├── samples/
 │   ├── sample-ai-output.json
-│   ├── sample-qualified-lead.json
-│   └── sample-lead.json
+│   ├── sample-crm-sync-output.json
+│   ├── sample-lead.json
+│   ├── sample-notification-message.json
+│   └── sample-qualified-lead.json
 ├── services/
 │   └── helper-api/
+│       ├── README.md
+│       ├── app.py
+│       ├── requirements.txt
 │       └── .gitkeep
 └── workflows/
     ├── .gitkeep
     ├── ai-qualification-routing-workflow.json
+    ├── crm-sync-notifications-workflow.json
     └── lead-intake-workflow.json
 ```
 
-## Tech Stack
+## Portfolio Highlights
 
-- n8n for workflow orchestration
-- REST APIs for system integrations
-- JSON payload contracts for workflow interfaces
-- Optional helper services (Node.js/Python) for custom extensions
+- Modular n8n workflow design with clear phase separation
+- Webhook-based intake and routing patterns for automation systems
+- AI-style scoring and qualification simulation without vendor lock-in
+- CRM-ready payload preparation and lightweight audit logging
+- Internal notification automation for operational follow-up
+- Repository structure and samples tailored for portfolio review
 
 ## Future Improvements
 
-- Add additional n8n workflows (qualification routing, CRM sync, notifications)
-- Add environment configuration examples (`.env.example`)
-- Add validation schemas for lead and AI payloads
-- Add test harnesses for webhook and API contract testing
-- Add deployment notes for self-hosted and cloud n8n setups
+- Add additional workflow variants for multichannel lead sources
+- Add payload schema validation examples for stronger contracts
+- Add test harnesses for sample payload execution
+- Add deployment notes for self-hosted and cloud n8n environments
 
 ## License
 

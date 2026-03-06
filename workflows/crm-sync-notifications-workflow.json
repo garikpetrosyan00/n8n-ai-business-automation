@@ -1,0 +1,257 @@
+{
+  "name": "CRM Sync & Notifications Workflow",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "Webhook_CRM_Sync",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crm-sync",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "crm-sync-webhook"
+    },
+    {
+      "id": "Validate_CRM_Payload",
+      "name": "Validate CRM Payload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "functionCode": "const input = $json.body ?? $json;\nconst required = ['contact_name', 'contact_email', 'company', 'priority', 'stage'];\nconst missingFields = required.filter((field) => {\n  const value = input[field];\n  return value === undefined || value === null || String(value).trim() === '';\n});\n\nreturn [{\n  json: {\n    ...input,\n    _validation: {\n      isValid: missingFields.length === 0,\n      missingFields\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "Route_Validation",
+      "name": "Route Validation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json._validation.isValid}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Prepare_CRM_Sync_Record",
+      "name": "Prepare CRM Sync Record",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        220
+      ],
+      "parameters": {
+        "functionCode": "const externalId = $json.external_id || `crm-${Date.now()}`;\nconst syncedAt = new Date().toISOString();\n\nreturn [{\n  json: {\n    ...$json,\n    crm_sync_record: {\n      external_id: externalId,\n      contact_name: String($json.contact_name).trim(),\n      contact_email: String($json.contact_email).trim().toLowerCase(),\n      company: String($json.company).trim(),\n      stage: String($json.stage).trim(),\n      priority: String($json.priority).trim().toLowerCase(),\n      score: $json.score ?? null,\n      notes: ($json.notes || $json.summary || 'Lead prepared for CRM synchronization.').trim(),\n      synced_at: syncedAt\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "Prepare_Audit_Log",
+      "name": "Prepare Audit Log",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        220
+      ],
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    ...$json,\n    audit_log: {\n      event_type: 'crm_sync_prepared',\n      timestamp: new Date().toISOString(),\n      company: $json.crm_sync_record.company,\n      contact_email: $json.crm_sync_record.contact_email,\n      sync_status: 'prepared'\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "Prepare_Internal_Notification",
+      "name": "Prepare Internal Notification",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        220
+      ],
+      "parameters": {
+        "functionCode": "const message = `CRM sync prepared for ${$json.crm_sync_record.contact_name} at ${$json.crm_sync_record.company} (priority: ${$json.crm_sync_record.priority}, stage: ${$json.crm_sync_record.stage})`;\n\nreturn [{\n  json: {\n    ...$json,\n    internal_notification: {\n      channel: 'internal-alerts',\n      message\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "Build_Success_Response",
+      "name": "Build Success Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        220
+      ],
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    status: 'success',\n    crm_sync_record: $json.crm_sync_record,\n    audit_log: $json.audit_log,\n    internal_notification: $json.internal_notification\n  }\n}];"
+      }
+    },
+    {
+      "id": "Build_Error_Response",
+      "name": "Build Error Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        420
+      ],
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    status: 'error',\n    missing_fields: $json._validation?.missingFields || [],\n    message: 'CRM sync payload validation failed. Required fields are missing.'\n  }\n}];"
+      }
+    },
+    {
+      "id": "Respond_Success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        220
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "Respond_Error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        420
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate CRM Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate CRM Payload": {
+      "main": [
+        [
+          {
+            "node": "Route Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Validation": {
+      "main": [
+        [
+          {
+            "node": "Prepare CRM Sync Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare CRM Sync Record": {
+      "main": [
+        [
+          {
+            "node": "Prepare Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Prepare Internal Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Internal Notification": {
+      "main": [
+        [
+          {
+            "node": "Build Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Error Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "versionId": "1"
+}

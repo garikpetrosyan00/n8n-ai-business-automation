@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-UTC}
+      - TZ=${GENERIC_TIMEZONE:-UTC}
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  helper-api:
+    image: python:3.11-slim
+    container_name: helper-api
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "${HELPER_API_PORT:-8000}:8000"
+    environment:
+      - TZ=${GENERIC_TIMEZONE:-UTC}
+    volumes:
+      - ./services/helper-api:/app
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+      uvicorn app:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  n8n_data:

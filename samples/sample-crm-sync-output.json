@@ -1,0 +1,25 @@
+{
+  "status": "success",
+  "crm_sync_record": {
+    "external_id": "crm-1741264800000",
+    "contact_name": "Elena Martinez",
+    "contact_email": "elena.martinez@northstarlogistics.example",
+    "company": "NorthStar Logistics",
+    "stage": "Discovery",
+    "priority": "high",
+    "score": 85,
+    "notes": "Elena Martinez from NorthStar Logistics classified as high-fit (high) with score 85.",
+    "synced_at": "2026-03-06T11:20:00Z"
+  },
+  "audit_log": {
+    "event_type": "crm_sync_prepared",
+    "timestamp": "2026-03-06T11:20:00Z",
+    "company": "NorthStar Logistics",
+    "contact_email": "elena.martinez@northstarlogistics.example",
+    "sync_status": "prepared"
+  },
+  "internal_notification": {
+    "channel": "internal-alerts",
+    "message": "CRM sync prepared for Elena Martinez at NorthStar Logistics (priority: high, stage: Discovery)"
+  }
+}
