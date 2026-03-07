@@ -33,6 +33,14 @@ CRM Sync & Notifications Workflow (`workflows/crm-sync-notifications-workflow.js
 
 These workflows are simulation-based portfolio examples intended to demonstrate architecture and logic patterns, not production vendor integrations.
 
+## Workflow Execution Demo
+
+Below is an example of the lead intake automation workflow running inside n8n.
+
+The workflow receives a lead via webhook, validates the payload, normalizes the data, performs AI-based lead qualification, prepares storage records, and generates an internal notification.
+
+![Workflow Execution](docs/workflow-execution.png)
+
 ## Example Business Use Cases
 
 - B2B service firms automating lead triage from website forms
