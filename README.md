@@ -1,4 +1,5 @@
 # AI Business Automation Hub with n8n
+![Automation Architecture](docs/architecture-diagram.png)
 
 AI-powered business automation portfolio project built with n8n and a lightweight helper API to demonstrate lead intake, qualification, routing, CRM preparation, and internal notifications.
 
