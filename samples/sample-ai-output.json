@@ -1,24 +1,34 @@
 {
-  "lead_id": "LD-2026-0001",
-  "qualified": true,
-  "qualification_score": 86,
-  "priority": "high",
-  "segment": "mid-market",
-  "recommended_next_action": "Schedule discovery call within 24 hours",
-  "reasoning_summary": "Lead has clear automation requirements, budget alignment, and near-term implementation timeline.",
-  "tags": [
-    "crm-sync",
-    "lead-qualification",
-    "operations-automation"
-  ],
-  "crm_payload": {
-    "status": "Qualified",
-    "owner_team": "Sales Ops",
-    "pipeline_stage": "Discovery"
+  "lead_id": "LD-1741267860000",
+  "status": "processed",
+  "lead": {
+    "name": "Elena Martinez",
+    "email": "elena.martinez@northstarlogistics.example",
+    "company": "NorthStar Logistics",
+    "role": "Operations Manager",
+    "message": "Need automation for lead intake, CRM sync, and faster internal notifications. Urgent timeline for Q2.",
+    "estimated_budget_usd": 18000,
+    "source": "website-contact-form",
+    "received_at": "2026-03-06T09:31:00.000Z"
   },
-  "notification": {
-    "channel": "slack",
-    "message": "High-priority qualified lead: NorthStar Logistics (Score: 86)."
+  "ai_output": {
+    "lead_score": 100,
+    "lead_category": "high-fit",
+    "priority": "high",
+    "summary": "Elena Martinez from NorthStar Logistics submitted a high-fit lead with score 100."
   },
-  "processed_at": "2026-03-06T09:31:20Z"
+  "storage_payload": {
+    "table": "leads",
+    "operation": "insert",
+    "record_preview": {
+      "company": "NorthStar Logistics",
+      "email": "elena.martinez@northstarlogistics.example",
+      "score": 100,
+      "priority": "high"
+    }
+  },
+  "internal_notification": {
+    "channel": "internal-alerts",
+    "message": "Lead processed: Elena Martinez from NorthStar Logistics (priority: high, score: 100)"
+  }
 }

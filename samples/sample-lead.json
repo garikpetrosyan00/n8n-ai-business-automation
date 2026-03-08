@@ -1,31 +1,9 @@
 {
-  "lead_id": "LD-2026-0001",
-  "submitted_at": "2026-03-06T09:30:00Z",
-  "source": "website-contact-form",
-  "company": {
-    "name": "NorthStar Logistics",
-    "industry": "Logistics",
-    "company_size": "51-200",
-    "website": "https://northstarlogistics.example"
-  },
-  "contact": {
-    "full_name": "Elena Martinez",
-    "email": "elena.martinez@northstarlogistics.example",
-    "phone": "+1-415-555-0187",
-    "job_title": "Operations Manager"
-  },
-  "requirements": {
-    "pain_points": [
-      "Manual lead routing",
-      "Delayed follow-up",
-      "Fragmented CRM updates"
-    ],
-    "requested_solution": "Automate lead intake and qualification, then sync qualified leads to CRM with team notifications.",
-    "estimated_budget_usd": 18000,
-    "timeline": "Q2 2026"
-  },
-  "consent": {
-    "marketing_opt_in": true,
-    "privacy_policy_accepted": true
-  }
+  "name": "Elena Martinez",
+  "email": "elena.martinez@northstarlogistics.example",
+  "company": "NorthStar Logistics",
+  "role": "Operations Manager",
+  "message": "Need automation for lead intake, CRM sync, and faster internal notifications. Urgent timeline for Q2.",
+  "estimated_budget_usd": 18000,
+  "source": "website-contact-form"
 }

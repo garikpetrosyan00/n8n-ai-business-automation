@@ -85,10 +85,11 @@ In the full architecture, this workflow acts as the execution layer that transla
 
 The helper API (`services/helper-api`) sits alongside n8n as a lightweight utility service.
 
-1. n8n can call helper endpoints when repeated transformation logic should be centralized in code.
-2. `/normalize-lead` can be used before routing to enforce a consistent lead contract.
-3. `/score-lead` can be used when deterministic scoring should be shared across workflows.
-4. `/health` supports quick local checks during development and demos.
+1. In this portfolio version, workflows run without a hard dependency on helper endpoints to keep demos reliable.
+2. n8n can call helper endpoints when repeated transformation logic should be centralized in code.
+3. `/normalize-lead` can be used before routing to enforce a consistent lead contract.
+4. `/score-lead` can be used when deterministic scoring should be shared across workflows.
+5. `/health` supports quick local checks during development and demos.
 
 Helper services are useful in automation systems because they keep workflow graphs readable while allowing reusable business logic to be maintained in one place.
 
@@ -97,6 +98,7 @@ Helper services are useful in automation systems because they keep workflow grap
 - Walkthrough guide: `docs/demo-walkthrough.md`
 - Project summary: `docs/project-summary.md`
 - Lead sample: `samples/sample-lead.json`
+- Alternate nested lead sample: `samples/sample-lead-nested.json`
 - Qualification sample: `samples/sample-qualified-lead.json`
 - CRM sync sample: `samples/sample-crm-sync-output.json`
 - Notification sample: `samples/sample-notification-message.json`

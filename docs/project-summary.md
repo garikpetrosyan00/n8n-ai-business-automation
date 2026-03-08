@@ -16,7 +16,7 @@ AI Business Automation Hub with n8n is a portfolio project that demonstrates how
 ## Stack Summary
 
 - n8n workflows for orchestration
-- FastAPI helper service for reusable logic
+- FastAPI helper service as a reusable companion (not required for core workflow execution)
 - Docker Compose for local development
 - JSON sample payloads for demonstration and documentation
 

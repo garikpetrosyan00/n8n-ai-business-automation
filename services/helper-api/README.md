@@ -52,6 +52,7 @@ curl -X POST http://localhost:8000/score-lead \
 - Keeps reusable data transformation logic centralized.
 - Reduces duplication across multiple workflows.
 - Provides deterministic helper behavior for portfolio demonstrations.
+- In this repository, workflows are intentionally runnable without this dependency to keep demo execution stable.
 
 ## Run Locally
 

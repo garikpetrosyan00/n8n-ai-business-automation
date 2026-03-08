@@ -32,7 +32,7 @@
         300
       ],
       "parameters": {
-        "functionCode": "const input = $json.body ?? $json;\nconst required = ['name', 'email', 'company', 'message'];\nconst missingFields = required.filter((field) => {\n  const value = input[field];\n  return value === undefined || value === null || String(value).trim() === '';\n});\n\nreturn [\n  {\n    json: {\n      ...input,\n      _validation: {\n        isValid: missingFields.length === 0,\n        missingFields\n      }\n    }\n  }\n];"
+        "functionCode": "const input = $json.body ?? $json;\n\nconst canonical = {\n  name: input.name ?? input.contact_name ?? input.contact?.full_name,\n  email: input.email ?? input.contact_email ?? input.contact?.email,\n  company: input.company ?? input.company_name ?? input.company?.name,\n  message: input.message ?? input.inquiry_summary ?? input.requirements?.requested_solution,\n  role: input.role ?? input.job_title ?? input.contact?.job_title ?? '',\n  estimated_budget_usd: input.estimated_budget_usd ?? input.budget_estimate_usd ?? input.requirements?.estimated_budget_usd ?? null,\n  source: input.source ?? 'webhook'\n};\n\nconst required = ['name', 'email', 'company', 'message'];\nconst missingFields = required.filter((field) => {\n  const value = canonical[field];\n  return value === undefined || value === null || String(value).trim() === '';\n});\n\nreturn [{\n  json: {\n    ...canonical,\n    _validation: {\n      isValid: missingFields.length === 0,\n      missingFields\n    }\n  }\n}];"
       }
     },
     {
@@ -65,7 +65,7 @@
         220
       ],
       "parameters": {
-        "functionCode": "const trimText = (value) => typeof value === 'string' ? value.trim() : value;\n\nconst normalized = {\n  name: trimText($json.name),\n  email: trimText($json.email)?.toLowerCase(),\n  company: trimText($json.company),\n  message: trimText($json.message),\n  source: trimText($json.source || 'webhook'),\n  received_at: new Date().toISOString()\n};\n\nreturn [{ json: normalized }];"
+        "functionCode": "const trimText = (value) => typeof value === 'string' ? value.trim() : value;\n\nconst normalized = {\n  name: trimText($json.name),\n  email: trimText($json.email)?.toLowerCase(),\n  company: trimText($json.company),\n  role: trimText($json.role || ''),\n  message: trimText($json.message),\n  estimated_budget_usd: $json.estimated_budget_usd ?? null,\n  source: trimText($json.source || 'webhook'),\n  received_at: new Date().toISOString()\n};\n\nreturn [{ json: normalized }];"
       }
     },
     {
@@ -78,7 +78,7 @@
         220
       ],
       "parameters": {
-        "functionCode": "const text = `${$json.message || ''}`.toLowerCase();\nlet leadScore = 45;\n\nif (text.includes('automation')) leadScore += 20;\nif (text.includes('crm')) leadScore += 15;\nif (text.includes('urgent') || text.includes('asap')) leadScore += 10;\nif (text.length > 120) leadScore += 5;\n\nleadScore = Math.max(0, Math.min(100, leadScore));\n\nlet leadCategory = 'cold';\nlet priority = 'low';\n\nif (leadScore >= 80) {\n  leadCategory = 'high-fit';\n  priority = 'high';\n} else if (leadScore >= 60) {\n  leadCategory = 'qualified';\n  priority = 'medium';\n}\n\nconst summary = `${$json.name} from ${$json.company} submitted a ${leadCategory} lead with score ${leadScore}.`;\n\nreturn [{\n  json: {\n    ...$json,\n    lead_score: leadScore,\n    lead_category: leadCategory,\n    priority,\n    summary\n  }\n}];"
+        "functionCode": "const text = `${$json.message || ''}`.toLowerCase();\nconst budget = Number($json.estimated_budget_usd || 0);\nlet leadScore = 45;\n\nif (text.includes('automation')) leadScore += 20;\nif (text.includes('crm') || text.includes('integration')) leadScore += 15;\nif (text.includes('urgent') || text.includes('asap')) leadScore += 10;\nif (budget >= 10000) leadScore += 10;\nif (text.length > 120) leadScore += 5;\n\nleadScore = Math.max(0, Math.min(100, leadScore));\n\nlet leadCategory = 'cold';\nlet priority = 'low';\n\nif (leadScore >= 80) {\n  leadCategory = 'high-fit';\n  priority = 'high';\n} else if (leadScore >= 60) {\n  leadCategory = 'qualified';\n  priority = 'medium';\n}\n\nconst summary = `${$json.name} from ${$json.company} submitted a ${leadCategory} lead with score ${leadScore}.`;\n\nreturn [{\n  json: {\n    ...$json,\n    lead_score: leadScore,\n    lead_category: leadCategory,\n    priority,\n    summary\n  }\n}];"
       }
     },
     {
@@ -91,7 +91,7 @@
         220
       ],
       "parameters": {
-        "functionCode": "const leadId = `LD-${Date.now()}`;\n\nreturn [{\n  json: {\n    lead_id: leadId,\n    status: 'qualified',\n    lead: {\n      name: $json.name,\n      email: $json.email,\n      company: $json.company,\n      message: $json.message,\n      source: $json.source,\n      received_at: $json.received_at\n    },\n    ai_output: {\n      lead_score: $json.lead_score,\n      lead_category: $json.lead_category,\n      priority: $json.priority,\n      summary: $json.summary\n    },\n    storage_payload: {\n      table: 'leads',\n      operation: 'insert',\n      record_preview: {\n        company: $json.company,\n        email: $json.email,\n        score: $json.lead_score,\n        priority: $json.priority\n      }\n    }\n  }\n}];"
+        "functionCode": "const leadId = `LD-${Date.now()}`;\n\nreturn [{\n  json: {\n    lead_id: leadId,\n    status: 'processed',\n    lead: {\n      name: $json.name,\n      email: $json.email,\n      company: $json.company,\n      role: $json.role,\n      message: $json.message,\n      estimated_budget_usd: $json.estimated_budget_usd,\n      source: $json.source,\n      received_at: $json.received_at\n    },\n    ai_output: {\n      lead_score: $json.lead_score,\n      lead_category: $json.lead_category,\n      priority: $json.priority,\n      summary: $json.summary\n    },\n    storage_payload: {\n      table: 'leads',\n      operation: 'insert',\n      record_preview: {\n        company: $json.company,\n        email: $json.email,\n        score: $json.lead_score,\n        priority: $json.priority\n      }\n    }\n  }\n}];"
       }
     },
     {
@@ -104,7 +104,7 @@
         220
       ],
       "parameters": {
-        "functionCode": "const message = `New qualified lead: ${$json.lead.name} from ${$json.lead.company}, priority: ${$json.ai_output.priority}`;\n\nreturn [{\n  json: {\n    ...$json,\n    internal_notification: {\n      channel: 'internal-alerts',\n      message\n    }\n  }\n}];"
+        "functionCode": "const message = `Lead processed: ${$json.lead.name} from ${$json.lead.company} (priority: ${$json.ai_output.priority}, score: ${$json.ai_output.lead_score})`;\n\nreturn [{\n  json: {\n    ...$json,\n    internal_notification: {\n      channel: 'internal-alerts',\n      message\n    }\n  }\n}];"
       }
     },
     {

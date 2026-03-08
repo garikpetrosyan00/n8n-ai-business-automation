@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   n8n:
-    image: n8nio/n8n:latest
+    image: n8nio/n8n:1.82.1
     container_name: n8n
     restart: unless-stopped
     ports:
@@ -14,7 +14,7 @@ services:
       - n8n_data:/home/node/.n8n
 
   helper-api:
-    image: python:3.11-slim
+    image: python:3.11.11-slim
     container_name: helper-api
     restart: unless-stopped
     working_dir: /app
@@ -22,6 +22,7 @@ services:
       - "${HELPER_API_PORT:-8000}:8000"
     environment:
       - TZ=${GENERIC_TIMEZONE:-UTC}
+      - PIP_DISABLE_PIP_VERSION_CHECK=1
     volumes:
       - ./services/helper-api:/app
     command: >

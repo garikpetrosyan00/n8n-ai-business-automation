@@ -1,15 +1,4 @@
 {
   "channel": "internal-alerts",
-  "event_type": "lead_follow_up_required",
-  "priority": "high",
-  "recipient_group": "sales-ops",
-  "message": "CRM sync prepared for Elena Martinez at NorthStar Logistics (priority: high, stage: Discovery).",
-  "context": {
-    "lead_id": "crm-1741264800000",
-    "company": "NorthStar Logistics",
-    "contact_name": "Elena Martinez",
-    "contact_email": "elena.martinez@northstarlogistics.example",
-    "stage": "Discovery"
-  },
-  "created_at": "2026-03-06T11:20:00Z"
+  "message": "Lead processed: Elena Martinez from NorthStar Logistics (priority: high, score: 100)"
 }
